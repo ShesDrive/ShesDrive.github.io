@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>She's Drive — Такси для женщин</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════
+       HEADER
+  ═══════════════════════════════════ -->
+  <header class="header" id="header">
+    <div class="header__inner">
+      <a href="#hero" class="header__logo">
+        <span class="header__logo-flower">🌸</span>
+        <span class="header__logo-text">She's Drive</span>
+      </a>
+      <nav class="header__nav" id="mainNav">
+        <a href="#hero"    class="header__nav-link">Главная</a>
+        <a href="#tariffs" class="header__nav-link">Тарифы</a>
+        <a href="#about"   class="header__nav-link">О нас</a>
+      </nav>
+      <button class="header__burger" id="burgerBtn"
+              aria-label="Открыть меню" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════
+       HERO
+  ═══════════════════════════════════ -->
+  <section class="hero" id="hero">
+    <div class="hero__bg" aria-hidden="true">
+      <div class="hero__circle c1"></div>
+      <div class="hero__circle c2"></div>
+      <div class="hero__circle c3"></div>
+      <div class="hero__circle c4"></div>
+    </div>
+    <div class="hero__content">
+      <div class="hero__badge">✨ Только женщины-водители</div>
+      <h1 class="hero__title">Такси для<br><em>настоящих женщин</em></h1>
+      <p class="hero__sub">
+        Безопасность, комфорт и стиль — в каждой поездке.<br>
+        Водители-женщины, которым вы можете доверять.
+      </p>
+      <a href="#map" class="hero__cta">
+        <span>Заказать поездку</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+    </div>
+    <div class="hero__deco" aria-hidden="true">🚗💨</div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       MAP SECTION
+  ═══════════════════════════════════ -->
+  <section class="map-section" id="map">
+    <div class="section-container">
+      <h2 class="section-title anim-el">Выберите маршрут</h2>
+      <p class="section-sub anim-el">Нажмите на карту, чтобы указать точку назначения</p>
+
+      <div class="map-wrap anim-el">
+        <div id="leaflet-map"></div>
+      </div>
+
+      <div class="map-controls anim-el">
+        <div class="map-input-row">
+          <label class="map-input-wrap" for="destInput">
+            <span class="map-input-icon" aria-hidden="true">🔍</span>
+            <input type="text" id="destInput" class="map-input"
+                   placeholder="Введите адрес назначения…" autocomplete="off">
+          </label>
+          <button class="btn-outline" id="geocodeBtn">Найти</button>
+        </div>
+        <div class="map-hints">
+          <div class="map-hint">
+            <span class="hint-dot hint-pink"></span>
+            <span id="originStatus">Получение геолокации…</span>
+          </div>
+          <div class="map-hint" id="destHint" style="opacity:.4">
+            <span class="hint-dot hint-purple"></span>
+            <span id="destStatus">Нажмите на карту для точки назначения</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       TARIFFS
+  ═══════════════════════════════════ -->
+  <section class="tariffs" id="tariffs">
+    <div class="section-container">
+      <h2 class="section-title anim-el">Наши тарифы</h2>
+      <p class="section-sub anim-el">Найдите идеальный вариант для любой поездки</p>
+      <div class="tariffs__grid" id="tariffsGrid"></div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       ABOUT
+  ═══════════════════════════════════ -->
+  <section class="about" id="about">
+    <div class="section-container">
+      <h2 class="section-title anim-el">О нас</h2>
+      <p class="section-sub anim-el">Почему тысячи женщин выбирают She's Drive</p>
+      <div class="about__grid">
+        <div class="about__card anim-el">
+          <div class="about__icon">👩‍✈️</div>
+          <h3>Только женщины-водители</h3>
+          <p>Все наши водители — опытные женщины с проверенной репутацией и многолетним стажем</p>
+        </div>
+        <div class="about__card anim-el">
+          <div class="about__icon">🛡️</div>
+          <h3>Полная безопасность</h3>
+          <p>Каждый маршрут отслеживается, ваши близкие всегда знают, где вы находитесь</p>
+        </div>
+        <div class="about__card anim-el">
+          <div class="about__icon">🌸</div>
+          <h3>Комфорт и уют</h3>
+          <p>Ухоженные автомобили, приятная атмосфера и дружелюбные водители в каждой поездке</p>
+        </div>
+        <div class="about__card anim-el">
+          <div class="about__icon">⏰</div>
+          <h3>24/7 в вашем распоряжении</h3>
+          <p>Сервис работает круглосуточно, в любую погоду и в любой ситуации</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════ -->
+  <footer class="footer">
+    <div class="footer__inner">
+      <div class="footer__logo">
+        <span>🌸</span>
+        <span>She's Drive</span>
+      </div>
+      <p class="footer__copy">© 2026 She's Drive — Безопасно. Комфортно. Для вас.</p>
+      <nav class="footer__links">
+        <a href="#hero">Главная</a>
+        <a href="#tariffs">Тарифы</a>
+        <a href="#about">О нас</a>
+      </nav>
+    </div>
+  </footer>
+
+  <!-- ═══════════════════════════════════
+       MODAL 1 — ПОДТВЕРЖДЕНИЕ ЗАКАЗА
+  ═══════════════════════════════════ -->
+  <div class="modal-overlay" id="modalOrder"
+       role="dialog" aria-modal="true" aria-labelledby="moTitle">
+    <div class="modal">
+      <button class="modal__close" data-close="modalOrder" aria-label="Закрыть">✕</button>
+      <div class="modal__car" id="modalCarIcon" aria-hidden="true">🚗</div>
+      <h2 class="modal__title" id="moTitle">Подтверждение заказа</h2>
+      <p class="modal__badge" id="modalTariffBadge"></p>
+      <div class="modal__grid">
+        <div class="modal__cell">
+          <span class="modal__label">👩‍✈️ Водитель</span>
+          <span class="modal__val" id="modalDriverName">—</span>
+        </div>
+        <div class="modal__cell">
+          <span class="modal__label">⏱️ Подача</span>
+          <span class="modal__val" id="modalArrival">—</span>
+        </div>
+        <div class="modal__cell">
+          <span class="modal__label">🗺️ В пути</span>
+          <span class="modal__val" id="modalDuration">—</span>
+        </div>
+        <div class="modal__cell modal__cell--wide">
+          <span class="modal__label">💳 Итого</span>
+          <span class="modal__val modal__val--price" id="modalCost">—</span>
+        </div>
+      </div>
+      <div class="modal__actions">
+        <button class="btn-primary btn-full" id="confirmOrderBtn">✓ Подтвердить заказ</button>
+        <button class="btn-ghost btn-full" data-close="modalOrder">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════
+       MODAL 2 — ОЖИДАНИЕ ВОДИТЕЛЯ
+  ═══════════════════════════════════ -->
+  <div class="modal-overlay" id="modalWaiting"
+       role="dialog" aria-modal="true" aria-labelledby="mwTitle">
+    <div class="modal modal--waiting">
+      <button class="modal__close" data-close="modalWaiting" aria-label="Закрыть">✕</button>
+      <h2 class="modal__title" id="mwTitle">Ожидайте водителя.</h2>
+
+      <div class="car-anim" aria-hidden="true">
+        <div class="car-anim__icon" id="carAnimIcon">🚗</div>
+        <div class="car-anim__road"></div>
+      </div>
+      <p class="waiting-info" id="waitingInfo">Водитель уже едет к вам</p>
+
+      <div class="chat">
+        <div class="chat__msgs" id="chatMsgs" role="log" aria-live="polite"></div>
+        <div class="chat__bar">
+          <input type="text" class="chat__input" id="chatInput"
+                 placeholder="Написать водителю…" autocomplete="off">
+          <button class="chat__send" id="chatSendBtn" aria-label="Отправить">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
+                    stroke="currentColor" stroke-width="2.2"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <button class="btn-outline btn-full" id="tripDoneBtn">🏁 Поездка завершена</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════
+       MODAL 3 — ОТЗЫВ
+  ═══════════════════════════════════ -->
+  <div class="modal-overlay" id="modalReview"
+       role="dialog" aria-modal="true" aria-labelledby="mrTitle">
+    <div class="modal modal--review">
+      <button class="modal__close" data-close="modalReview" aria-label="Закрыть">✕</button>
+      <h2 class="modal__title" id="mrTitle">Как прошла поездка?</h2>
+
+      <div class="review__driver">
+        <div class="review__avatar" aria-hidden="true">👩‍✈️</div>
+        <div class="review__info">
+          <strong id="reviewDriverName">—</strong>
+          <span>Ваш водитель</span>
+        </div>
+      </div>
+
+      <div class="stars" id="starRating"
+           role="group" aria-label="Оценка от 1 до 5">
+        <button class="star" data-v="1" aria-label="1 звезда">★</button>
+        <button class="star" data-v="2" aria-label="2 звезды">★</button>
+        <button class="star" data-v="3" aria-label="3 звезды">★</button>
+        <button class="star" data-v="4" aria-label="4 звезды">★</button>
+        <button class="star" data-v="5" aria-label="5 звёзд">★</button>
+      </div>
+      <p class="star-lbl" id="starLabel" aria-live="polite">Выберите оценку</p>
+
+      <textarea class="review__ta" id="reviewComment" rows="3"
+                placeholder="Оставьте комментарий (необязательно)…"></textarea>
+
+      <div class="review__tags" id="reviewTags">
+        <button class="tag">✨ Чисто в машине</button>
+        <button class="tag">💐 Вежливая</button>
+        <button class="tag">⚡ Быстро доехали</button>
+        <button class="tag">🛡️ Безопасное вождение</button>
+      </div>
+
+      <button class="btn-primary btn-full" id="submitReviewBtn">Отправить отзыв</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════
+       TOAST CONTAINER
+  ═══════════════════════════════════ -->
+  <div class="toast-wrap" id="toastContainer"
+       aria-live="assertive" role="status"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
