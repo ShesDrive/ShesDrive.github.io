@@ -6,31 +6,31 @@
 /* ─── DATA ──────────────────────────────────── */
 const TARIFFS = [
   { id:'econom',   icon:'🚗', name:'Эконом',
-    cars:'Hyundai Solaris / Kia Rio',        price:'~120 ₽/км',
+    cars:'Hyundai Solaris / Kia Rio',        price:'120 ₽/км',
     desc:'Бюджетная поездка',               ppm:120, extra:0 },
   { id:'comfort',  icon:'🚙', name:'Обычный',
-    cars:'Toyota Camry / Skoda Octavia',     price:'~160 ₽/км',
+    cars:'Toyota Camry / Skoda Octavia',     price:'160 ₽/км',
     desc:'Комфорт на каждый день',          ppm:160, extra:0 },
   { id:'premium',  icon:'🚘', name:'Премиум',
-    cars:'Mercedes E-Class / BMW 5',         price:'~280 ₽/км',
+    cars:'Mercedes E-Class / BMW 5',         price:'280 ₽/км',
     desc:'Для особых случаев',              ppm:280, extra:0 },
   { id:'child',    icon:'👶', name:'С детским креслом',
-    cars:'Kia Carnival / VW Multivan',       price:'+50 ₽',
+    cars:'Kia Carnival / VW Multivan',       price:'160+50 ₽',
     desc:'Безопасность малыша',             ppm:160, extra:50 },
   { id:'pet',      icon:'🐾', name:'С животным',
-    cars:'Skoda Kodiaq / Renault Duster',   price:'+40 ₽',
-    desc:'Питомец едет с вами',             ppm:120, extra:40 },
+    cars:'Skoda Kodiaq / Renault Duster',   price:'160+50 ₽',
+    desc:'Питомец едет с вами',             ppm:160, extra:50 },
 ];
 
 const DRIVERS   = ['Анна','Мария','Екатерина','Дарья','Светлана'];
 const RESPONSES = [
-  'Уже еду, немного подождите! 😊',
-  'Всё хорошо, скоро буду! 🚗',
-  'Навигатор проложил маршрут, еду! 🗺️',
+  'Уже еду, немного подождите!',
+  'Всё хорошо, скоро буду!',
+  'Навигатор проложил маршрут, еду!',
   'Буду с вами через несколько минут! 💜',
   'Ок, поняла вас! 👍',
   'Конечно, без проблем! 🌸',
-  'Хорошо, постараюсь побыстрее! 🏎️',
+  'Хорошо, постараюсь побыстрее!',
   'Слышу вас! Совсем скоро 🌟',
 ];
 const STAR_TXT  = ['','Плохо','Так себе','Нормально','Хорошо','Отлично! ⭐'];
