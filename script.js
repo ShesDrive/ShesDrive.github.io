@@ -31,7 +31,7 @@ const RESPONSES = [
   'Ок, поняла вас! 👍',
   'Конечно, без проблем! 🌸',
   'Хорошо, постараюсь побыстрее!',
-  'Слышу вас! Совсем скоро 🌟',
+  'Слышу вас! Совсем скоро',
 ];
 const STAR_TXT  = ['','Плохо','Так себе','Нормально','Хорошо','Отлично! ⭐'];
 
@@ -362,7 +362,7 @@ function startRide() {
   set('waitingInfo', 'Водитель ' + curDriver + ' едет к вам');
   showToast('Заказ принят! Водитель ' + curDriver + ' в пути 🌸', '✅');
 
-  setTimeout(() => addMsg('Еду к вам, буду через ' + curArrival + ' минут 🚗', 'driver'), 1500);
+  setTimeout(() => addMsg('Еду к вам, буду через ' + curArrival + ' минут', 'driver'), 1500);
 }
 
 function initChat() {
@@ -426,7 +426,7 @@ function initReview() {
   );
 
   document.getElementById('submitReviewBtn').addEventListener('click', () => {
-    if (!curRating) { showToast('Пожалуйста, выберите оценку ⭐', '⭐'); return; }
+    if (!curRating) { showToast('Пожалуйста, поставьте оценку водителю ⭐', '⭐'); return; }
     closeModal('modalReview');
     resetReview();
     showToast('Спасибо за отзыв! 💜', '💜');
