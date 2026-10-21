@@ -156,21 +156,21 @@ function renderTariffs() {
    LEAFLET MAP
 ════════════════════════════════════════════ */
 function initMap() {
-  // 1. ЗАМЕНЯЕМ создание карты, добавляя minZoom и maxZoom
+  // 1. Изменили настройки карты (добавили лимиты зума)
   map = L.map('leaflet-map', { 
     zoomControl: true,
-    minZoom: 10,  // Пользователь не сможет сильно отдалить карту и увидеть границы
-    maxZoom: 18   // Максимальное приближение
+    minZoom: 10,
+    maxZoom: 18
   }).setView([55.7558, 37.6176], 12);
 
-  // 2. ЗАМЕНЯЕМ стандартный tileLayer на CartoDB Positron (карта без границ стран)
+  // 2. Поставили карту без политических границ
   L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com">CARTO</a>',
+    attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors &copy; <a href="https://carto.com">CARTO</a>',
     subdomains: 'abcd',
     maxZoom: 20
   }).addTo(map);
 
-  // 3. ДОБАВЛЯЕМ ограничение области перемещения (чтобы нельзя было утащить карту в другую страну)
+  // 3. Запретили перетаскивать карту за пределы области
   var southWest = L.latLng(55.50, 37.30),
       northEast = L.latLng(56.00, 37.90),
       bounds = L.latLngBounds(southWest, northEast);
@@ -180,9 +180,6 @@ function initMap() {
       map.panInsideBounds(bounds, { animate: false });
   });
 
-  // --- ДАЛЬШЕ ОСТАЕТСЯ ВАШ СУЩЕСТВУЮЩИЙ КОД БЕЗ ИЗМЕНЕНИЙ ---
-  
-  // Force size recalc when section scrolls into view
   const mapSection = document.getElementById('map');
   mapObserver = new IntersectionObserver(entries => {
     if (entries[0].isIntersecting) { map.invalidateSize(); mapObserver.disconnect(); }
@@ -197,6 +194,117 @@ function initMap() {
   document.getElementById('destInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') geocode();
   });
+}
+
+function mkOriginIcon() {
+  return L.divIcon({
+    html: '<div class="mk">📍</div>',
+    className: '', iconSize:[34,34], iconAnchor:[17,34], popupAnchor:[0,-36],
+  });
+}
+function mkDestIcon() {
+  return L.divIcon({
+    html: '<div class="mk">🏁</div>',
+    className: '', iconSize:[34,34], iconAnchor:[17,34], popupAnchor:[0,-36],
+  });
+}
+
+function requestGeolocation() {
+  const st = document.getElementById('originStatus');
+  if (!navigator.geolocation) {
+    st.textContent = '📍 Москва (геолокация не поддерживается)';
+    placeOrigin(55.7558, 37.6176);
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      userPos = [lat, lng];
+      placeOrigin(lat, lng);
+      map.setView([lat, lng], 14);
+      st.textContent = '📍 Ваше местоположение определено';
+      document.getElementById('destHint').style.opacity = '1';
+      showToast('Местоположение определено 📍', '📍');
+    },
+    () => {
+      placeOrigin(55.7558, 37.6176);
+      st.textContent = '📍 Москва (геолокация недоступна)';
+      document.getElementById('destHint').style.opacity = '1';
+    }
+  );
+}
+
+function placeOrigin(lat, lng) {
+  userPos = [lat, lng];
+  if (originMk) map.removeLayer(originMk);
+  originMk = L.marker([lat, lng], { icon: mkOriginIcon() })
+    .addTo(map)
+    .bindPopup('<b style="color:#E91E8C">📍 Вы здесь</b>');
+}
+
+// ВОТ ЭТА ФУНКЦИЯ, КУДА МЫ ДУБЛИРОВАЛИ ЗАЩИТУ ЗУМА
+function setDest(lat, lng) {
+  destPos = [lat, lng];
+  if (destMk) map.removeLayer(destMk);
+  destMk = L.marker([lat, lng], { icon: mkDestIcon() })
+    .addTo(map)
+    .bindPopup('<b style="color:#9C27B0">🏁 Куда едем</b>')
+    .openPopup();
+
+  if (routeLine) map.removeLayer(routeLine);
+  
+  // Тот самый кусок, который вы выделили:
+  if (userPos) {
+    routeLine = L.polyline([userPos, [lat, lng]], {
+      color: '#9C27B0', weight: 3, dashArray: '10 12', opacity: .8,
+    }).addTo(map);
+    
+    map.fitBounds(L.latLngBounds([userPos, [lat, lng]]), { padding:[60,60] });
+    
+    // Защита от отдаления карты при построении маршрута
+    if (map.getZoom() < 10) {
+      map.setZoom(10);
+    }
+  }
+
+  document.getElementById('destStatus').textContent = '🏁 Точка назначения выбрана';
+  document.getElementById('destHint').style.opacity = '1';
+  showToast('Точка назначения выбрана 🏁', '🏁');
+}
+
+async function geocode() {
+  const q = document.getElementById('destInput').value.trim();
+  if (!q) return;
+  const btn = document.getElementById('geocodeBtn');
+  const orig = btn.textContent;
+  btn.textContent = '…'; btn.disabled = true;
+  try {
+    // Ограничили текстовый поиск улиц только регионом Москвы (viewbox и bounded=1)
+    const url = `https://openstreetmap.org{encodeURIComponent(q)}&format=json&limit=1&accept-language=ru&viewbox=37.30,56.00,37.90,55.50&bounded=1`;
+    const res = await fetch(url, { headers:{ 'User-Agent':'ShesDrive/1.0' } });
+    const data = await res.json();
+    if (data.length) {
+      const lat = parseFloat(data[0].lat), lon = parseFloat(data[0].lon);
+      setDest(lat, lon);
+      map.setView([lat, lon], 14);
+      document.getElementById('destInput').value = data[0].display_name;
+    } else {
+      showToast('Адрес не найден. Попробуйте другой запрос.', '❌');
+    }
+  } catch { showToast('Ошибка поиска адреса', '❌'); }
+  finally { btn.textContent = orig; btn.disabled = false; }
+}
+
+function calcDist() {
+  if (!userPos || !destPos) return 8;
+  const R = 6371;
+  const dLat = (destPos[0] - userPos[0]) * Math.PI / 180;
+  const dLon = (destPos[1] - userPos[1]) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2
+    + Math.cos(userPos[0]*Math.PI/180) * Math.cos(destPos[0]*Math.PI/180)
+    * Math.sin(dLon/2)**2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return Math.max(2, Math.round(R * c * 1.4));
 }
 
 /* ════════════════════════════════════════════
