@@ -155,13 +155,21 @@ function renderTariffs() {
 /* ════════════════════════════════════════════
    LEAFLET MAP
 ════════════════════════════════════════════ */
+// Переменная для границ Московской области (нужна глобально для проверки кликов)
+const moscowRegionBounds = L.latLngBounds([54.15, 35.10], [57.05, 40.30]);
+
 function initMap() {
-  map = L.map('leaflet-map', { zoomControl:true })
-         .setView([55.7558, 37.6176], 12);
+  map = L.map('leaflet-map', { 
+    zoomControl: true,
+    minZoom: 8,                       // Ограничиваем минимальный зум (чтобы карта не была слишком маленькой)
+    maxBounds: moscowRegionBounds,    // Задаем границы камеры Московской областью
+    maxBoundsViscosity: 1.0           // Не дает камере выходить за эти границы
+  }).setView([55.7558, 37.6176], 12);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     maxZoom: 19,
+    minZoom: 8                        // Синхронизируем минимальный зум для слоев карт
   }).addTo(map);
 
   // Force size recalc when section scrolls into view
@@ -173,7 +181,14 @@ function initMap() {
 
   requestGeolocation();
 
-  map.on('click', e => setDest(e.latlng.lat, e.latlng.lng));
+  // Проверяем клик: если точка вне Московской области, не ставим маркер
+  map.on('click', e => {
+    if (moscowRegionBounds.contains(e.latlng)) {
+      setDest(e.latlng.lat, e.latlng.lng);
+    } else {
+      showToast('Пожалуйста, выберите точку внутри Московской области', '❌');
+    }
+  });
 
   document.getElementById('geocodeBtn').addEventListener('click', geocode);
   document.getElementById('destInput').addEventListener('keydown', e => {
@@ -255,7 +270,7 @@ async function geocode() {
   const orig = btn.textContent;
   btn.textContent = '…'; btn.disabled = true;
   try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&accept-language=ru`;
+    const url = `https://openstreetmap.org{encodeURIComponent(q)}&format=json&limit=1&accept-language=ru`;
     const res = await fetch(url, { headers:{ 'User-Agent':'ShesDrive/1.0' } });
     const data = await res.json();
     if (data.length) {
