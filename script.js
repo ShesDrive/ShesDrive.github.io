@@ -155,16 +155,33 @@ function renderTariffs() {
 /* ════════════════════════════════════════════
    LEAFLET MAP
 ════════════════════════════════════════════ */
-// Границы Москвы (МКАД + Новая Москва с небольшим запасом)
-const moscowBounds = L.latLngBounds([55.14, 36.75], [56.02, 38.00]);
+// Координаты центра Москвы (Кремль) для точной проверки расстояния
+const MOSCOW_CENTER_LAT = 55.7558;
+const MOSCOW_CENTER_LNG = 37.6176;
+const MAX_ALLOWED_DISTANCE_KM = 65; // Строгий радиус Москвы и ближнего пригорода
+
+// Вспомогательная функция для проверки, входит ли точка в радиус Москвы
+function isInsideMoscow(lat, lng) {
+  const R = 6371;
+  const dLat = (lat - MOSCOW_CENTER_LAT) * Math.PI / 180;
+  const dLon = (lng - MOSCOW_CENTER_LNG) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(MOSCOW_CENTER_LAT * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c;
+  return distance <= MAX_ALLOWED_DISTANCE_KM;
+}
 
 function initMap() {
-  map = L.map('leaflet-map', { zoomControl:true })
-         .setView([55.7558, 37.6176], 12);
+  // Задаем примерные визуальные границы для камеры вокруг Москвы
+  const visualBounds = L.latLngBounds([55.15, 36.80], [56.05, 38.00]);
 
-  // Ограничиваем камеру и зум рамками Москвы
+  map = L.map('leaflet-map', { zoomControl: true })
+         .setView([MOSCOW_CENTER_LAT, MOSCOW_CENTER_LNG], 12);
+
   map.setMinZoom(9);
-  map.setMaxBounds(moscowBounds);
+  map.setMaxBounds(visualBounds);
   map.options.maxBoundsViscosity = 1.0;
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -173,21 +190,23 @@ function initMap() {
     minZoom: 9
   }).addTo(map);
 
-  // Force size recalc when section scrolls into view
   const mapSection = document.getElementById('map');
   mapObserver = new IntersectionObserver(entries => {
-    if (entries.length > 0 && entries[0].isIntersecting) { map.invalidateSize(); mapObserver.disconnect(); }
-  }, { threshold:.1 });
+    if (entries.length > 0 && entries.at(0).isIntersecting) { 
+      map.invalidateSize(); 
+      mapObserver.disconnect(); 
+    }
+  }, { threshold: 0.1 });
   mapObserver.observe(mapSection);
 
   requestGeolocation();
 
-  // Клик по карте с проверкой новых границ Москвы
+  // Клик по карте с умной фильтрацией расстояния
   map.on('click', e => {
-    if (moscowBounds.contains(e.latlng)) {
+    if (isInsideMoscow(e.latlng.lat, e.latlng.lng)) {
       setDest(e.latlng.lat, e.latlng.lng);
     } else {
-      showToast('Пожалуйста, выберите точку внутри Москвы', '❌');
+      showToast('Пожалуйста, выберите точку в пределах Москвы', '❌');
     }
   });
 
@@ -200,13 +219,13 @@ function initMap() {
 function mkOriginIcon() {
   return L.divIcon({
     html: '<div class="mk">📍</div>',
-    className: '', iconSize:, iconAnchor:, popupAnchor: [0, -36],
+    className: '', iconSize: [34, 34], iconAnchor: [17, 34], popupAnchor: [0, -36],
   });
 }
 function mkDestIcon() {
   return L.divIcon({
     html: '<div class="mk">🏁</div>',
-    className: '', iconSize:, iconAnchor:, popupAnchor: [0, -36],
+    className: '', iconSize: [34, 34], iconAnchor: [17, 34], popupAnchor: [0, -36],
   });
 }
 
@@ -214,7 +233,7 @@ function requestGeolocation() {
   const st = document.getElementById('originStatus');
   if (!navigator.geolocation) {
     st.textContent = '📍 Москва (геолокация не поддерживается)';
-    placeOrigin(55.7558, 37.6176);
+    placeOrigin(MOSCOW_CENTER_LAT, MOSCOW_CENTER_LNG);
     return;
   }
   navigator.geolocation.getCurrentPosition(
@@ -229,7 +248,7 @@ function requestGeolocation() {
       showToast('Местоположение определено 📍', '📍');
     },
     () => {
-      placeOrigin(55.7558, 37.6176);
+      placeOrigin(MOSCOW_CENTER_LAT, MOSCOW_CENTER_LNG);
       st.textContent = '📍 Москва (геолокация недоступна)';
       document.getElementById('destHint').style.opacity = '1';
     }
@@ -255,7 +274,7 @@ function setDest(lat, lng) {
   if (routeLine) map.removeLayer(routeLine);
   if (userPos) {
     routeLine = L.polyline([userPos, [lat, lng]], {
-      color: '#9C27B0', weight: 3, dashArray: '10 12', opacity: .8,
+      color: '#9C27B0', weight: 3, dashArray: '10 12', opacity: 0.8,
     }).addTo(map);
     map.fitBounds(L.latLngBounds([userPos, [lat, lng]]), { padding: [60, 60] });
   }
@@ -265,7 +284,7 @@ function setDest(lat, lng) {
   showToast('Точка назначения выбрана 🏁', '🏁');
 }
 
-// Переписано без использования `${}` и со 100% иммунитетом к багам маркдауна
+// Поиск, защищенный от искажения адресной строки парсером чата
 async function geocode() {
   const q = document.getElementById('destInput').value.trim();
   if (!q) return;
@@ -273,20 +292,21 @@ async function geocode() {
   const orig = btn.textContent;
   btn.textContent = '…'; btn.disabled = true;
   try {
-    // Безопасное сложение строк
-    const url = 'https://openstreetmap.org' + encodeURIComponent(q) + '&format=json&limit=1&accept-language=ru';
+    // Безопасное формирование строки запроса через склейку обычных строк
+    const baseUrl = 'https://openstreetmap.org';
+    const params = '?q=' + encodeURIComponent(q) + '&format=json&limit=1&accept-language=ru';
+    const url = baseUrl + params;
     
-    const res = await fetch(url, { headers:{ 'User-Agent':'ShesDrive/1.0' } });
+    const res = await fetch(url, { headers: { 'User-Agent': 'ShesDrive/1.0' } });
     const data = await res.json();
     
     if (data && data.length > 0) {
       const firstResult = data.at(0);
       const lat = parseFloat(firstResult.lat);
       const lon = parseFloat(firstResult.lon);
-      const targetLatLng = L.latLng(lat, lon);
 
-      // Проверяем новые суженные границы Москвы
-      if (moscowBounds.contains(targetLatLng)) {
+      // Проверяем расстояние от Кремля до найденной точки
+      if (isInsideMoscow(lat, lon)) {
         setDest(lat, lon);
         map.setView([lat, lon], 14);
         document.getElementById('destInput').value = firstResult.display_name;
@@ -306,12 +326,17 @@ async function geocode() {
 function calcDist() {
   if (!userPos || !destPos) return 8;
   const R = 6371;
-  const dLat = (destPos[0] - userPos[0]) * Math.PI / 180;
-  const dLon = (destPos[1] - userPos[1]) * Math.PI / 180;
-  const a = Math.sin(dLat/2)**2
-    + Math.cos(userPos[0]*Math.PI/180) * Math.cos(destPos[0]*Math.PI/180)
-    * Math.sin(dLon/2)**2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const lat1 = userPos.at(0);
+  const lon1 = userPos.at(1);
+  const lat2 = destPos.at(0);
+  const lon2 = destPos.at(1);
+  
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return Math.max(2, Math.round(R * c * 1.4));
 }
 
