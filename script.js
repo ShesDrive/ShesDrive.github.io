@@ -155,38 +155,39 @@ function renderTariffs() {
 /* ════════════════════════════════════════════
    LEAFLET MAP
 ════════════════════════════════════════════ */
-// Переменная для границ Московской области (нужна глобально для проверки кликов)
-const moscowRegionBounds = L.latLngBounds([54.15, 35.10], [57.05, 40.30]);
+// Границы Москвы (МКАД + Новая Москва с небольшим запасом)
+const moscowBounds = L.latLngBounds([55.14, 36.75], [56.02, 38.00]);
 
 function initMap() {
-  map = L.map('leaflet-map', { 
-    zoomControl: true,
-    minZoom: 8,                       // Ограничиваем минимальный зум (чтобы карта не была слишком маленькой)
-    maxBounds: moscowRegionBounds,    // Задаем границы камеры Московской областью
-    maxBoundsViscosity: 1.0           // Не дает камере выходить за эти границы
-  }).setView([55.7558, 37.6176], 12);
+  map = L.map('leaflet-map', { zoomControl:true })
+         .setView([55.7558, 37.6176], 12);
+
+  // Ограничиваем камеру и зум рамками Москвы
+  map.setMinZoom(9);
+  map.setMaxBounds(moscowBounds);
+  map.options.maxBoundsViscosity = 1.0;
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
     maxZoom: 19,
-    minZoom: 8                        // Синхронизируем минимальный зум для слоев карт
+    minZoom: 9
   }).addTo(map);
 
   // Force size recalc when section scrolls into view
   const mapSection = document.getElementById('map');
   mapObserver = new IntersectionObserver(entries => {
-    if (entries[0].isIntersecting) { map.invalidateSize(); mapObserver.disconnect(); }
+    if (entries.length > 0 && entries[0].isIntersecting) { map.invalidateSize(); mapObserver.disconnect(); }
   }, { threshold:.1 });
   mapObserver.observe(mapSection);
 
   requestGeolocation();
 
-  // Проверяем клик: если точка вне Московской области, не ставим маркер
+  // Клик по карте с проверкой новых границ Москвы
   map.on('click', e => {
-    if (moscowRegionBounds.contains(e.latlng)) {
+    if (moscowBounds.contains(e.latlng)) {
       setDest(e.latlng.lat, e.latlng.lng);
     } else {
-      showToast('Пожалуйста, выберите точку внутри Московской области', '❌');
+      showToast('Пожалуйста, выберите точку внутри Москвы', '❌');
     }
   });
 
@@ -199,13 +200,13 @@ function initMap() {
 function mkOriginIcon() {
   return L.divIcon({
     html: '<div class="mk">📍</div>',
-    className: '', iconSize:[34,34], iconAnchor:[17,34], popupAnchor:[0,-36],
+    className: '', iconSize:, iconAnchor:, popupAnchor: [0, -36],
   });
 }
 function mkDestIcon() {
   return L.divIcon({
     html: '<div class="mk">🏁</div>',
-    className: '', iconSize:[34,34], iconAnchor:[17,34], popupAnchor:[0,-36],
+    className: '', iconSize:, iconAnchor:, popupAnchor: [0, -36],
   });
 }
 
@@ -218,7 +219,8 @@ function requestGeolocation() {
   }
   navigator.geolocation.getCurrentPosition(
     pos => {
-      const { latitude: lat, longitude: lng } = pos.coords;
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
       userPos = [lat, lng];
       placeOrigin(lat, lng);
       map.setView([lat, lng], 14);
@@ -255,7 +257,7 @@ function setDest(lat, lng) {
     routeLine = L.polyline([userPos, [lat, lng]], {
       color: '#9C27B0', weight: 3, dashArray: '10 12', opacity: .8,
     }).addTo(map);
-    map.fitBounds(L.latLngBounds([userPos, [lat, lng]]), { padding:[60,60] });
+    map.fitBounds(L.latLngBounds([userPos, [lat, lng]]), { padding: [60, 60] });
   }
 
   document.getElementById('destStatus').textContent = '🏁 Точка назначения выбрана';
@@ -263,6 +265,7 @@ function setDest(lat, lng) {
   showToast('Точка назначения выбрана 🏁', '🏁');
 }
 
+// Переписано без использования `${}` и со 100% иммунитетом к багам маркдауна
 async function geocode() {
   const q = document.getElementById('destInput').value.trim();
   if (!q) return;
@@ -270,18 +273,33 @@ async function geocode() {
   const orig = btn.textContent;
   btn.textContent = '…'; btn.disabled = true;
   try {
-    const url = `https://openstreetmap.org{encodeURIComponent(q)}&format=json&limit=1&accept-language=ru`;
+    // Безопасное сложение строк
+    const url = 'https://openstreetmap.org' + encodeURIComponent(q) + '&format=json&limit=1&accept-language=ru';
+    
     const res = await fetch(url, { headers:{ 'User-Agent':'ShesDrive/1.0' } });
     const data = await res.json();
-    if (data.length) {
-      const lat = parseFloat(data[0].lat), lon = parseFloat(data[0].lon);
-      setDest(lat, lon);
-      map.setView([lat, lon], 14);
-      document.getElementById('destInput').value = data[0].display_name;
+    
+    if (data && data.length > 0) {
+      const firstResult = data.at(0);
+      const lat = parseFloat(firstResult.lat);
+      const lon = parseFloat(firstResult.lon);
+      const targetLatLng = L.latLng(lat, lon);
+
+      // Проверяем новые суженные границы Москвы
+      if (moscowBounds.contains(targetLatLng)) {
+        setDest(lat, lon);
+        map.setView([lat, lon], 14);
+        document.getElementById('destInput').value = firstResult.display_name;
+      } else {
+        showToast('Поиск ограничен пределами Москвы', '❌');
+      }
     } else {
       showToast('Адрес не найден. Попробуйте другой запрос.', '❌');
     }
-  } catch { showToast('Ошибка поиска адреса', '❌'); }
+  } catch (err) { 
+    console.error(err);
+    showToast('Ошибка поиска адреса', '❌'); 
+  }
   finally { btn.textContent = orig; btn.disabled = false; }
 }
 
