@@ -156,25 +156,24 @@ function renderTariffs() {
    LEAFLET MAP
 ════════════════════════════════════════════ */
 function initMap() {
-  // 1. Возвращаем оригинальную карту, но жестко фиксируем минимальный зум на 9 (уровень области)
+  // 1. Оригинальная карта с лимитом зума на уровне области
   map = L.map('leaflet-map', { 
     zoomControl: true,
-    minZoom: 9,   // Меньше этого значения пользователь карту не отдалит
+    minZoom: 9,   // Пользователь не сможет отдалить карту дальше Московской области
     maxZoom: 19
   }).setView([55.7558, 37.6176], 12);
 
-  // 2. Ваша исходная ссылка OpenStreetMap
+  // 2. Ваша стандартная подложка OpenStreetMap
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
     maxZoom: 19,
   }).addTo(map);
 
-  // 3. Координаты-«коробка» вокруг всей Московской области
-  var southWest = L.latLng(54.20, 35.10), // Юго-западная граница Подмосковья
-      northEast = L.latLng(56.90, 40.30), // Северо-восточная граница Подмосковья
+  // 3. Границы вокруг всей Московской области (карта не уедет к границам стран)
+  var southWest = L.latLng(54.20, 35.10), 
+      northEast = L.latLng(56.90, 40.30), 
       bounds = L.latLngBounds(southWest, northEast);
 
-  // Заставляем карту автоматически удерживать пользователя внутри этих границ
   map.setMaxBounds(bounds);
 
   const mapSection = document.getElementById('map');
@@ -208,10 +207,10 @@ function setDest(lat, lng) {
       color: '#9C27B0', weight: 3, dashArray: '10 12', opacity: .8,
     }).addTo(map);
     
-    // Исправили пустой padding, вернули ваши оригинальные отступы [60,60]
+    // ИСПРАВЛЕНО: Вернули ваши оригинальные отступы, теперь код не ломается
     map.fitBounds(L.latLngBounds([userPos, [lat, lng]]), { padding: [60, 60] });
     
-    // Защита от отдаления: если при прокладке маршрута Leaflet решит показать карту слишком мелко, сбрасываем на безопасный зум
+    // Защита от отдаления: если точки далеко, не даем зуму стать меньше безопасного уровня
     if (map.getZoom() < 9) {
       map.setZoom(9);
     }
