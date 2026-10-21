@@ -156,29 +156,18 @@ function renderTariffs() {
    LEAFLET MAP
 ════════════════════════════════════════════ */
 function initMap() {
-  // 1. Инициализируем стандартную карту, но жестко ограничиваем минимальный зум (нельзя сильно отдалить)
-  map = L.map('leaflet-map', { 
-    zoomControl: true,
-    minZoom: 9,   // Защита: пользователь не сможет увидеть границы государств
-    maxZoom: 19
-  }).setView([55.7558, 37.6176], 12);
+  map = L.map('leaflet-map', { zoomControl:true })
+         .setView([55.7558, 37.6176], 12);
 
-  // 2. Ваша стандартная оригинальная подложка OpenStreetMap
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     maxZoom: 19,
   }).addTo(map);
 
-  // 3. Задаем жесткие границы вокруг Москвы и Московской области, чтобы карту нельзя было утащить к границам стран
-  var southWest = L.latLng(54.20, 35.10), 
-      northEast = L.latLng(56.90, 40.30), 
-      bounds = L.latLngBounds(southWest, northEast);
-
-  map.setMaxBounds(bounds);
-
+  // Force size recalc when section scrolls into view
   const mapSection = document.getElementById('map');
   mapObserver = new IntersectionObserver(entries => {
-    if (entries.isIntersecting) { map.invalidateSize(); mapObserver.disconnect(); }
+    if (entries[0].isIntersecting) { map.invalidateSize(); mapObserver.disconnect(); }
   }, { threshold:.1 });
   mapObserver.observe(mapSection);
 
@@ -192,6 +181,52 @@ function initMap() {
   });
 }
 
+function mkOriginIcon() {
+  return L.divIcon({
+    html: '<div class="mk">📍</div>',
+    className: '', iconSize:[34,34], iconAnchor:[17,34], popupAnchor:[0,-36],
+  });
+}
+function mkDestIcon() {
+  return L.divIcon({
+    html: '<div class="mk">🏁</div>',
+    className: '', iconSize:[34,34], iconAnchor:[17,34], popupAnchor:[0,-36],
+  });
+}
+
+function requestGeolocation() {
+  const st = document.getElementById('originStatus');
+  if (!navigator.geolocation) {
+    st.textContent = '📍 Москва (геолокация не поддерживается)';
+    placeOrigin(55.7558, 37.6176);
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      userPos = [lat, lng];
+      placeOrigin(lat, lng);
+      map.setView([lat, lng], 14);
+      st.textContent = '📍 Ваше местоположение определено';
+      document.getElementById('destHint').style.opacity = '1';
+      showToast('Местоположение определено 📍', '📍');
+    },
+    () => {
+      placeOrigin(55.7558, 37.6176);
+      st.textContent = '📍 Москва (геолокация недоступна)';
+      document.getElementById('destHint').style.opacity = '1';
+    }
+  );
+}
+
+function placeOrigin(lat, lng) {
+  userPos = [lat, lng];
+  if (originMk) map.removeLayer(originMk);
+  originMk = L.marker([lat, lng], { icon: mkOriginIcon() })
+    .addTo(map)
+    .bindPopup('<b style="color:#E91E8C">📍 Вы здесь</b>');
+}
+
 function setDest(lat, lng) {
   destPos = [lat, lng];
   if (destMk) map.removeLayer(destMk);
@@ -201,19 +236,11 @@ function setDest(lat, lng) {
     .openPopup();
 
   if (routeLine) map.removeLayer(routeLine);
-  
   if (userPos) {
     routeLine = L.polyline([userPos, [lat, lng]], {
       color: '#9C27B0', weight: 3, dashArray: '10 12', opacity: .8,
     }).addTo(map);
-    
-    // ИСПРАВЛЕНО: Вернули ваши оригинальные отступы [60, 60] — синтаксис полностью восстановлен!
-    map.fitBounds(L.latLngBounds([userPos, [lat, lng]]), { padding: [60, 60] });
-    
-    // Защита от отдаления: если точки слишком далеко, удерживаем безопасный зум
-    if (map.getZoom() < 9) {
-      map.setZoom(9);
-    }
+    map.fitBounds(L.latLngBounds([userPos, [lat, lng]]), { padding:[60,60] });
   }
 
   document.getElementById('destStatus').textContent = '🏁 Точка назначения выбрана';
@@ -228,8 +255,7 @@ async function geocode() {
   const orig = btn.textContent;
   btn.textContent = '…'; btn.disabled = true;
   try {
-    // Ограничили текстовый поиск улиц только регионом Москвы (viewbox и bounded=1)
-    const url = `https://openstreetmap.org{encodeURIComponent(q)}&format=json&limit=1&accept-language=ru&viewbox=37.30,56.00,37.90,55.50&bounded=1`;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&accept-language=ru`;
     const res = await fetch(url, { headers:{ 'User-Agent':'ShesDrive/1.0' } });
     const data = await res.json();
     if (data.length) {
