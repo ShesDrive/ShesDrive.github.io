@@ -156,29 +156,26 @@ function renderTariffs() {
    LEAFLET MAP
 ════════════════════════════════════════════ */
 function initMap() {
-  // 1. Изменили настройки карты (добавили лимиты зума)
+  // 1. Возвращаем оригинальную карту, но жестко фиксируем минимальный зум на 9 (уровень области)
   map = L.map('leaflet-map', { 
     zoomControl: true,
-    minZoom: 10,
-    maxZoom: 18
+    minZoom: 9,   // Меньше этого значения пользователь карту не отдалит
+    maxZoom: 19
   }).setView([55.7558, 37.6176], 12);
 
-  // 2. Поставили карту без политических границ
-  L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors &copy; <a href="https://carto.com">CARTO</a>',
-    subdomains: 'abcd',
-    maxZoom: 20
+  // 2. Ваша исходная ссылка OpenStreetMap
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+    maxZoom: 19,
   }).addTo(map);
 
-  // 3. Запретили перетаскивать карту за пределы области
-  var southWest = L.latLng(55.50, 37.30),
-      northEast = L.latLng(56.00, 37.90),
+  // 3. Координаты-«коробка» вокруг всей Московской области
+  var southWest = L.latLng(54.20, 35.10), // Юго-западная граница Подмосковья
+      northEast = L.latLng(56.90, 40.30), // Северо-восточная граница Подмосковья
       bounds = L.latLngBounds(southWest, northEast);
 
+  // Заставляем карту автоматически удерживать пользователя внутри этих границ
   map.setMaxBounds(bounds);
-  map.on('drag', function() {
-      map.panInsideBounds(bounds, { animate: false });
-  });
 
   const mapSection = document.getElementById('map');
   mapObserver = new IntersectionObserver(entries => {
@@ -196,53 +193,6 @@ function initMap() {
   });
 }
 
-function mkOriginIcon() {
-  return L.divIcon({
-    html: '<div class="mk">📍</div>',
-    className: '', iconSize:[34,34], iconAnchor:[17,34], popupAnchor:[0,-36],
-  });
-}
-function mkDestIcon() {
-  return L.divIcon({
-    html: '<div class="mk">🏁</div>',
-    className: '', iconSize:[34,34], iconAnchor:[17,34], popupAnchor:[0,-36],
-  });
-}
-
-function requestGeolocation() {
-  const st = document.getElementById('originStatus');
-  if (!navigator.geolocation) {
-    st.textContent = '📍 Москва (геолокация не поддерживается)';
-    placeOrigin(55.7558, 37.6176);
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      const { latitude: lat, longitude: lng } = pos.coords;
-      userPos = [lat, lng];
-      placeOrigin(lat, lng);
-      map.setView([lat, lng], 14);
-      st.textContent = '📍 Ваше местоположение определено';
-      document.getElementById('destHint').style.opacity = '1';
-      showToast('Местоположение определено 📍', '📍');
-    },
-    () => {
-      placeOrigin(55.7558, 37.6176);
-      st.textContent = '📍 Москва (геолокация недоступна)';
-      document.getElementById('destHint').style.opacity = '1';
-    }
-  );
-}
-
-function placeOrigin(lat, lng) {
-  userPos = [lat, lng];
-  if (originMk) map.removeLayer(originMk);
-  originMk = L.marker([lat, lng], { icon: mkOriginIcon() })
-    .addTo(map)
-    .bindPopup('<b style="color:#E91E8C">📍 Вы здесь</b>');
-}
-
-// ВОТ ЭТА ФУНКЦИЯ, КУДА МЫ ДУБЛИРОВАЛИ ЗАЩИТУ ЗУМА
 function setDest(lat, lng) {
   destPos = [lat, lng];
   if (destMk) map.removeLayer(destMk);
@@ -253,17 +203,17 @@ function setDest(lat, lng) {
 
   if (routeLine) map.removeLayer(routeLine);
   
-  // Тот самый кусок, который вы выделили:
   if (userPos) {
     routeLine = L.polyline([userPos, [lat, lng]], {
       color: '#9C27B0', weight: 3, dashArray: '10 12', opacity: .8,
     }).addTo(map);
     
-    map.fitBounds(L.latLngBounds([userPos, [lat, lng]]), { padding:[60,60] });
+    // Исправили пустой padding, вернули ваши оригинальные отступы [60,60]
+    map.fitBounds(L.latLngBounds([userPos, [lat, lng]]), { padding: [60, 60] });
     
-    // Защита от отдаления карты при построении маршрута
-    if (map.getZoom() < 10) {
-      map.setZoom(10);
+    // Защита от отдаления: если при прокладке маршрута Leaflet решит показать карту слишком мелко, сбрасываем на безопасный зум
+    if (map.getZoom() < 9) {
+      map.setZoom(9);
     }
   }
 
