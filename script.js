@@ -156,20 +156,20 @@ function renderTariffs() {
    LEAFLET MAP
 ════════════════════════════════════════════ */
 function initMap() {
-  // 1. Оригинальная карта с лимитом зума на уровне области (нельзя сильно отдалить)
+  // 1. Инициализируем стандартную карту, но жестко ограничиваем минимальный зум (нельзя сильно отдалить)
   map = L.map('leaflet-map', { 
     zoomControl: true,
-    minZoom: 9,   // Пользователь физически не сможет увидеть границы стран
+    minZoom: 9,   // Защита: пользователь не сможет увидеть границы государств
     maxZoom: 19
   }).setView([55.7558, 37.6176], 12);
 
-  // 2. Ваша стандартная подложка OpenStreetMap
+  // 2. Ваша стандартная оригинальная подложка OpenStreetMap
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
     maxZoom: 19,
   }).addTo(map);
 
-  // 3. Жесткие границы вокруг всей Московской области (карта не уедет к политическим границам)
+  // 3. Задаем жесткие границы вокруг Москвы и Московской области, чтобы карту нельзя было утащить к границам стран
   var southWest = L.latLng(54.20, 35.10), 
       northEast = L.latLng(56.90, 40.30), 
       bounds = L.latLngBounds(southWest, northEast);
@@ -178,7 +178,7 @@ function initMap() {
 
   const mapSection = document.getElementById('map');
   mapObserver = new IntersectionObserver(entries => {
-    if (entries[0].isIntersecting) { map.invalidateSize(); mapObserver.disconnect(); }
+    if (entries.isIntersecting) { map.invalidateSize(); mapObserver.disconnect(); }
   }, { threshold:.1 });
   mapObserver.observe(mapSection);
 
@@ -207,10 +207,10 @@ function setDest(lat, lng) {
       color: '#9C27B0', weight: 3, dashArray: '10 12', opacity: .8,
     }).addTo(map);
     
-    // ИСПРАВЛЕНО: Задали корректный отступ, теперь код не ломается и карта оживет
-    map.fitBounds(L.latLngBounds([userPos, [lat, lng]]), { padding: [50, 50] });
+    // ИСПРАВЛЕНО: Вернули ваши оригинальные отступы [60, 60] — синтаксис полностью восстановлен!
+    map.fitBounds(L.latLngBounds([userPos, [lat, lng]]), { padding: [60, 60] });
     
-    // Защита от отдаления: если точки далеко, удерживаем безопасный зум
+    // Защита от отдаления: если точки слишком далеко, удерживаем безопасный зум
     if (map.getZoom() < 9) {
       map.setZoom(9);
     }
